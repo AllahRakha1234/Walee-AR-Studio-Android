@@ -43,6 +43,8 @@
     <string name="label_face_presence_confidence_threshold">Presence
         Threshold</string>
     <string name="label_num_faces">Number of Faces</string>
+    <string name="label_max_face_count">Maximum Faces</string>
+    <string name="label_show_landmarks">Show Face Landmarks</string>
     <string name="label_delegate">Delegate</string>
 
     <string-array name="delegate_spinner_titles">

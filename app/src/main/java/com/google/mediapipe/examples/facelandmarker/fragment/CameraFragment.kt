@@ -187,6 +187,14 @@ class CameraFragment : Fragment(), FaceLandmarkerHelper.LandmarkerListener {
                 Locale.US, "%.2f", viewModel.currentMinFacePresenceConfidence
             )
 
+        // Set initial state for show landmarks switch
+        fragmentCameraBinding.bottomSheetLayout.showLandmarksSwitch.isChecked = true
+
+        // Set up the listener for show landmarks switch
+        fragmentCameraBinding.bottomSheetLayout.showLandmarksSwitch.setOnCheckedChangeListener { _, isChecked ->
+            fragmentCameraBinding.overlay.setShowLandmarks(isChecked)
+        }
+
         // When clicked, lower face detection score threshold floor
         fragmentCameraBinding.bottomSheetLayout.detectionThresholdMinus.setOnClickListener {
             if (faceLandmarkerHelper.minFaceDetectionConfidence >= 0.2) {

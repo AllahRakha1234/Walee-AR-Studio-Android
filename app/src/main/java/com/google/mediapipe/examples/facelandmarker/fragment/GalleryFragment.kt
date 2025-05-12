@@ -122,7 +122,7 @@ class GalleryFragment : Fragment(), FaceLandmarkerHelper.LandmarkerListener {
     }
 
     private fun initBottomSheetControls() {
-        // init bottom sheet settings
+        // Update the bottom sheet state
         fragmentGalleryBinding.bottomSheetLayout.maxFacesValue.text =
             viewModel.currentMaxFaces.toString()
         fragmentGalleryBinding.bottomSheetLayout.detectionThresholdValue.text =
@@ -137,6 +137,14 @@ class GalleryFragment : Fragment(), FaceLandmarkerHelper.LandmarkerListener {
             String.format(
                 Locale.US, "%.2f", viewModel.currentMinFacePresenceConfidence
             )
+
+        // Set initial state for show landmarks switch
+        fragmentGalleryBinding.bottomSheetLayout.showLandmarksSwitch.isChecked = true
+
+        // Set up the listener for show landmarks switch
+        fragmentGalleryBinding.bottomSheetLayout.showLandmarksSwitch.setOnCheckedChangeListener { _, isChecked ->
+            fragmentGalleryBinding.overlay.setShowLandmarks(isChecked)
+        }
 
         // When clicked, lower detection score threshold floor
         fragmentGalleryBinding.bottomSheetLayout.detectionThresholdMinus.setOnClickListener {
