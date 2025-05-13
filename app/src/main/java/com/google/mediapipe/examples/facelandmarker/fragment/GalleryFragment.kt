@@ -31,10 +31,14 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
+import androidx.navigation.Navigation
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.viewpager2.widget.ViewPager2
 import com.google.mediapipe.examples.facelandmarker.FaceLandmarkerHelper
 import com.google.mediapipe.examples.facelandmarker.MainViewModel
+import com.google.mediapipe.examples.facelandmarker.OverlayView
+import com.google.mediapipe.examples.facelandmarker.R
 import com.google.mediapipe.examples.facelandmarker.databinding.FragmentGalleryBinding
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import java.util.Locale
@@ -144,6 +148,15 @@ class GalleryFragment : Fragment(), FaceLandmarkerHelper.LandmarkerListener {
         // Set up the listener for show landmarks switch
         fragmentGalleryBinding.bottomSheetLayout.showLandmarksSwitch.setOnCheckedChangeListener { _, isChecked ->
             fragmentGalleryBinding.overlay.setShowLandmarks(isChecked)
+        }
+
+        // Set up the filter type radio group listener
+        fragmentGalleryBinding.bottomSheetLayout.filterTypeRadioGroup.setOnCheckedChangeListener { _, checkedId ->
+            when (checkedId) {
+                R.id.filter_joker -> fragmentGalleryBinding.overlay.setFilterType(OverlayView.FilterType.JOKER_MASK)
+                R.id.filter_glasses -> fragmentGalleryBinding.overlay.setFilterType(OverlayView.FilterType.GLASSES)
+                R.id.filter_none -> fragmentGalleryBinding.overlay.setFilterType(OverlayView.FilterType.NONE)
+            }
         }
 
         // When clicked, lower detection score threshold floor

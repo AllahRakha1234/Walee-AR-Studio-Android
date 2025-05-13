@@ -42,6 +42,7 @@ import androidx.viewpager2.widget.ViewPager2.SCROLL_STATE_SETTLING
 import androidx.viewpager2.widget.ViewPager2.ScrollState
 import com.google.mediapipe.examples.facelandmarker.FaceLandmarkerHelper
 import com.google.mediapipe.examples.facelandmarker.MainViewModel
+import com.google.mediapipe.examples.facelandmarker.OverlayView
 import com.google.mediapipe.examples.facelandmarker.R
 import com.google.mediapipe.examples.facelandmarker.databinding.FragmentCameraBinding
 import com.google.mediapipe.tasks.vision.core.RunningMode
@@ -193,6 +194,15 @@ class CameraFragment : Fragment(), FaceLandmarkerHelper.LandmarkerListener {
         // Set up the listener for show landmarks switch
         fragmentCameraBinding.bottomSheetLayout.showLandmarksSwitch.setOnCheckedChangeListener { _, isChecked ->
             fragmentCameraBinding.overlay.setShowLandmarks(isChecked)
+        }
+
+        // Set up the filter type radio group listener
+        fragmentCameraBinding.bottomSheetLayout.filterTypeRadioGroup.setOnCheckedChangeListener { _, checkedId ->
+            when (checkedId) {
+                R.id.filter_joker -> fragmentCameraBinding.overlay.setFilterType(OverlayView.FilterType.JOKER_MASK)
+                R.id.filter_glasses -> fragmentCameraBinding.overlay.setFilterType(OverlayView.FilterType.GLASSES)
+                R.id.filter_none -> fragmentCameraBinding.overlay.setFilterType(OverlayView.FilterType.NONE)
+            }
         }
 
         // When clicked, lower face detection score threshold floor

@@ -16,10 +16,16 @@ package com.google.mediapipe.examples.facelandmarker
  * limitations under the License.
  */
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.RectF
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.util.AttributeSet
+import android.util.Log
 import android.view.View
 import androidx.core.content.ContextCompat
 import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
@@ -32,6 +38,13 @@ import kotlin.math.min
 class OverlayView(context: Context?, attrs: AttributeSet?) :
     View(context, attrs) {
 
+    // Enum to track which filter is active
+    enum class FilterType {
+        NONE,
+        JOKER_MASK,
+        GLASSES
+    }
+
     private var results: FaceLandmarkerResult? = null
     private var linePaint = Paint()
     private var pointPaint = Paint()
@@ -40,8 +53,56 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
     private var imageWidth: Int = 1
     private var imageHeight: Int = 1
 
+    private var jokerMaskBitmap: Bitmap? = null
+    private var glassesBitmap: Bitmap? = null
+    
+    // Control whether to show landmarks and connectors
+    private var showLandmarks: Boolean = true
+    
+    // Current active filter
+    private var currentFilter: FilterType = FilterType.JOKER_MASK
+
     init {
         initPaints()
+        // Load the filter bitmaps from resources
+        context?.let {
+            try {
+                jokerMaskBitmap = BitmapFactory.decodeResource(it.resources, R.drawable.joker_mask)
+                
+                // Properly load vector drawable as bitmap
+                glassesBitmap = drawableToBitmap(ContextCompat.getDrawable(it, R.drawable.glasses))
+                
+                Log.d(TAG, "Joker mask loaded: ${jokerMaskBitmap != null}")
+                Log.d(TAG, "Glasses loaded: ${glassesBitmap != null}")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error loading filter images: ${e.message}")
+            }
+        }
+    }
+    
+    // Helper function to convert drawable to bitmap
+    private fun drawableToBitmap(drawable: Drawable?): Bitmap? {
+        if (drawable == null) {
+            Log.e(TAG, "Drawable is null")
+            return null
+        }
+        
+        if (drawable is BitmapDrawable) {
+            return drawable.bitmap
+        }
+        
+        // Create bitmap with transparent pixels
+        val bitmap = Bitmap.createBitmap(
+            drawable.intrinsicWidth,
+            drawable.intrinsicHeight,
+            Bitmap.Config.ARGB_8888
+        )
+        
+        val canvas = Canvas(bitmap)
+        drawable.setBounds(0, 0, canvas.width, canvas.height)
+        drawable.draw(canvas)
+        
+        return bitmap
     }
 
     fun clear() {
@@ -61,6 +122,19 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
         pointPaint.color = Color.YELLOW
         pointPaint.strokeWidth = LANDMARK_STROKE_WIDTH
         pointPaint.style = Paint.Style.FILL
+    }
+    
+    // Method to control landmark visibility
+    fun setShowLandmarks(show: Boolean) {
+        showLandmarks = show
+        invalidate()
+    }
+    
+    // Method to switch between filters
+    fun setFilterType(filterType: FilterType) {
+        currentFilter = filterType
+        Log.d(TAG, "Filter set to: $filterType")
+        invalidate()
     }
 
     override fun draw(canvas: Canvas) {
@@ -84,11 +158,21 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
 
             // Iterate through each detected face
             faceLandmarkerResult.faceLandmarks().forEach { faceLandmarks ->
-                // Draw all landmarks for the current face
-                drawFaceLandmarks(canvas, faceLandmarks, offsetX, offsetY)
+                // Draw landmarks and connectors only if showLandmarks is true
+                if (showLandmarks) {
+                    // Draw all landmarks for the current face
+                    drawFaceLandmarks(canvas, faceLandmarks, offsetX, offsetY)
 
-                // Draw all connectors for the current face
-                drawFaceConnectors(canvas, faceLandmarks, offsetX, offsetY)
+                    // Draw all connectors for the current face
+                    drawFaceConnectors(canvas, faceLandmarks, offsetX, offsetY)
+                }
+                
+                // Draw the selected filter
+                when (currentFilter) {
+                    FilterType.JOKER_MASK -> drawJokerMask(canvas, faceLandmarks, offsetX, offsetY)
+                    FilterType.GLASSES -> drawGlasses(canvas, faceLandmarks, offsetX, offsetY)
+                    FilterType.NONE -> {} // No filter
+                }
             }
         }
     }
@@ -130,6 +214,102 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
 
                 canvas.drawLine(startX, startY, endX, endY, linePaint)
             }
+        }
+    }
+
+    private fun drawJokerMask(
+        canvas: Canvas,
+        faceLandmarks: List<NormalizedLandmark>,
+        offsetX: Float,
+        offsetY: Float
+    ) {
+        val leftEye = faceLandmarks.getOrNull(33) // Left eye landmark index
+        val rightEye = faceLandmarks.getOrNull(263) // Right eye landmark index
+        val chin = faceLandmarks.getOrNull(152) // Chin landmark index
+
+        if (leftEye != null && rightEye != null && chin != null && jokerMaskBitmap != null) {
+            val lx = leftEye.x() * imageWidth * scaleFactor + offsetX
+            val ly = leftEye.y() * imageHeight * scaleFactor + offsetY
+            val rx = rightEye.x() * imageWidth * scaleFactor + offsetX
+            val ry = rightEye.y() * imageHeight * scaleFactor + offsetY
+            val cx = chin.x() * imageWidth * scaleFactor + offsetX
+            val cy = chin.y() * imageHeight * scaleFactor + offsetY
+
+            // Calculate mask width, height, and rotation
+            val maskWidth = Math.hypot((rx - lx).toDouble(), (ry - ly).toDouble()) * 2.0
+            val maskHeight = Math.abs(cy - ((ly + ry) / 2)) * 2.0
+
+            val centerX = (lx + rx) / 2
+            val centerY = (ly + ry) / 2
+
+            val angle = Math.toDegrees(Math.atan2((ry - ly).toDouble(), (rx - lx).toDouble())).toFloat()
+
+            val maskRect = RectF(
+                (centerX - maskWidth / 2).toFloat(),
+                (centerY - maskHeight / 3).toFloat(),
+                (centerX + maskWidth / 2).toFloat(),
+                (centerY + maskHeight * 2 / 3).toFloat()
+            )
+
+            val saveCount = canvas.save()
+            canvas.rotate(angle, centerX, centerY)
+            jokerMaskBitmap?.let {
+                canvas.drawBitmap(
+                    Bitmap.createScaledBitmap(it, maskRect.width().toInt(), maskRect.height().toInt(), true),
+                    maskRect.left,
+                    maskRect.top,
+                    null
+                )
+            }
+            canvas.restoreToCount(saveCount)
+        }
+    }
+    
+    private fun drawGlasses(
+        canvas: Canvas,
+        faceLandmarks: List<NormalizedLandmark>,
+        offsetX: Float,
+        offsetY: Float
+    ) {
+        val leftEye = faceLandmarks.getOrNull(33) // Left eye landmark index
+        val rightEye = faceLandmarks.getOrNull(263) // Right eye landmark index
+
+        if (leftEye != null && rightEye != null && glassesBitmap != null) {
+            val lx = leftEye.x() * imageWidth * scaleFactor + offsetX
+            val ly = leftEye.y() * imageHeight * scaleFactor + offsetY
+            val rx = rightEye.x() * imageWidth * scaleFactor + offsetX
+            val ry = rightEye.y() * imageHeight * scaleFactor + offsetY
+
+            // Calculate glasses width and position
+            val glassesWidth = Math.hypot((rx - lx).toDouble(), (ry - ly).toDouble()) * 2.2
+            val glassesHeight = glassesWidth * 0.4 // Maintain aspect ratio
+
+            val centerX = (lx + rx) / 2
+            val centerY = (ly + ry) / 2
+
+            val angle = Math.toDegrees(Math.atan2((ry - ly).toDouble(), (rx - lx).toDouble())).toFloat()
+
+            val glassesRect = RectF(
+                (centerX - glassesWidth / 2).toFloat(),
+                (centerY - glassesHeight / 2).toFloat(),
+                (centerX + glassesWidth / 2).toFloat(),
+                (centerY + glassesHeight / 2).toFloat()
+            )
+
+            val saveCount = canvas.save()
+            canvas.rotate(angle, centerX, centerY)
+            glassesBitmap?.let {
+                Log.d(TAG, "Drawing glasses at: ${glassesRect.left}, ${glassesRect.top}, width: ${glassesRect.width()}, height: ${glassesRect.height()}")
+                canvas.drawBitmap(
+                    Bitmap.createScaledBitmap(it, glassesRect.width().toInt(), glassesRect.height().toInt(), true),
+                    glassesRect.left,
+                    glassesRect.top,
+                    null
+                )
+            }
+            canvas.restoreToCount(saveCount)
+        } else {
+            Log.d(TAG, "Cannot draw glasses: leftEye=${leftEye != null}, rightEye=${rightEye != null}, glassesBitmap=${glassesBitmap != null}")
         }
     }
 

@@ -295,6 +295,47 @@
                 android:layout_centerVertical="true"
                 android:checked="true" />
         </RelativeLayout>
+        
+        <!-- Filter selection row -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/bottom_sheet_default_row_margin">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Filter Type"
+                android:textColor="@color/bottom_sheet_text_color"
+                android:textSize="@dimen/bottom_sheet_text_size" />
+
+            <RadioGroup
+                android:id="@+id/filter_type_radio_group"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentRight="true"
+                android:orientation="horizontal">
+
+                <RadioButton
+                    android:id="@+id/filter_joker"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    android:text="Joker" />
+
+                <RadioButton
+                    android:id="@+id/filter_glasses"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Glasses" />
+                    
+                <RadioButton
+                    android:id="@+id/filter_none"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="None" />
+            </RadioGroup>
+        </RelativeLayout>
 
         <!-- Delegate selection row -->
         <RelativeLayout
